@@ -9,9 +9,7 @@ pipeline{
         }
         stage('Unit test using maven'){
             steps{
-                script{
-                    sh 'mvn test'
-                }
+                sh 'mvn test'
             }
         }
         stage('Unit test using shared lib'){
