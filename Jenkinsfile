@@ -2,7 +2,9 @@ pipeline{
     agent any
     stages{
         stage('git checkout'){
-            sh 'echo passed'
+            steps{
+                sh 'echo passed'
+            }
         }
     }
 }
