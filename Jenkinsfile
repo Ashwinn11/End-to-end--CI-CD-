@@ -3,6 +3,9 @@ pipeline{
     agent any
     parameters{
         choice(name:'action',choices:'create\ndelete',description:'Choose Create/Destroy')
+        string(name:'ImageName',description: 'Name of the image',defaultValue:'web-app')
+        string(name:'ImageVersion',description: 'Version of the image',defaultValue:'v1')
+        string(name:'UserName',description: 'Username of the hub',defaultValue:'docker')
     }
     stages{
         stage('git checkout'){
@@ -45,6 +48,13 @@ pipeline{
                 mvnBuild()
             }
         }
+        stage('Docker build'){
+            when { expression { params.action == 'create' } }
+            steps{
+                dockerBuild("${params.ImageName}","${params.ImageTag}","${params.UserName}")
+            }
+        }
+
 
 
     }
