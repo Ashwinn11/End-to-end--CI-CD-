@@ -1,78 +1,76 @@
-// jenkins shared library https://github.com/vikash-kumar01/jenkins_shared_lib.git
 @Library('my_lib') _
-pipeline{
+pipeline {
     agent any
-    parameters{
-        choice(name:'action',choices:'create\ndelete',description:'Choose Create/Destroy')
-        string(name:'ImageName',description: 'Name of the image',defaultValue:'web-app')
-        string(name:'ImageVersion',description: 'Version of the image',defaultValue:'v1')
-        string(name:'UserName',description: 'Username of the hub',defaultValue:'ashwiin11')
+    parameters {
+        choice(name: 'action', choices: 'create\ndelete', description: 'Choose Create/Destroy')
+        string(name: 'aws_accountId', description: 'AWS accountId', defaultValue: 'web-app')
+        string(name: 'region', description: 'region of the ECR', defaultValue: 'us-east-1')
+        string(name: 'repoName', description: 'RepoName of the hub', defaultValue: 'ashwiin11')
     }
-    stages{
-        stage('git checkout'){
+    stages {
+        stage('git checkout') {
             when { expression { params.action == 'create' } }
-            steps{
+            steps {
                 sh 'echo passed'
             }
         }
-        stage('Unit test using shared lib'){
+        stage('Unit test using shared lib') {
             when { expression { params.action == 'create' } }
-            steps{
+            steps {
                 mvnTest()
             }
         }
-        stage('Integration test using shared lib'){
+        stage('Integration test using shared lib') {
             when { expression { params.action == 'create' } }
-            steps{
+            steps {
                 mvnIntegrationTest()
             }
         }
-        stage('Static code analysis'){
+        stage('Static code analysis') {
             when { expression { params.action == 'create' } }
-            steps{
+            steps {
                 def credentials = 'sonarqube_api'
                 staticCodeAnalysis(credentials)
             }
 
         }
-        stage('Quality gate check'){
+        stage('Quality gate check') {
             when { expression { params.action == 'create' } }
-            steps{
+            steps {
                 def credentials = 'sonarqube_api'
                 QualityGateStatus(credentials)
             }
 
         }
-        stage('Maven build'){
+        stage('Maven build') {
             when { expression { params.action == 'create' } }
-            steps{
+            steps {
                 mvnBuild()
             }
         }
-        stage('Docker build'){
+        stage('Docker build using ECR') {
             when { expression { params.action == 'create' } }
-            steps{
-                dockerBuild("${params.ImageName}","${params.ImageTag}","${params.UserName}")
+            steps {
+                dockerBuild("${params.aws_accountId}", "${params.region}", "${params.repoName}")
             }
         }
         stage('Docker image scan'){
             when { expression { params.action == 'create' } }
             steps{
-                dockerImageScan("${params.ImageName}","${params.ImageTag}","${params.UserName}")
+                dockerImageScan("${params.aws_accountId}", "${params.region}", "${params.repoName}")
             }
         }
         stage('Docker image push'){
             when { expression { params.action == 'create' } }
             steps{
-                dockerImagePush("${params.ImageName}","${params.ImageTag}","${params.UserName}")
+                dockerImagePush("${params.aws_accountId}", "${params.region}", "${params.repoName}")
             }
         }
         stage('Docker image cleanuo'){
             when { expression { params.action == 'create' } }
             steps{
-                dockerImageCleanup("${params.ImageName}","${params.ImageTag}","${params.UserName}")
+                dockerImageCleanup("${params.aws_accountId}", "${params.region}", "${params.repoName}")
             }
         }
-
     }
 }
