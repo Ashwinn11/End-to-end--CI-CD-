@@ -1,4 +1,7 @@
 // jenkins shared library https://github.com/vikash-kumar01/jenkins_shared_lib.git
+
+
+
 @Library('my_lib') _
 pipeline{
     agent any
@@ -67,7 +70,7 @@ pipeline{
                 dockerImagePush("${params.ImageName}","${params.ImageTag}","${params.UserName}")
             }
         }
-        stage('Docker image cleanuo'){
+        stage('Docker image cleanup'){
             when { expression { params.action == 'create' } }
             steps{
                 dockerImageCleanup("${params.ImageName}","${params.ImageTag}","${params.UserName}")

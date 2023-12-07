@@ -1,4 +1,8 @@
-@Library('my_lib') _
+// jenkins shared library https://github.com/vikash-kumar01/jenkins_shared_lib.git
+
+
+
+@Library('my_lib') _ // whatever the library name that we are configuring in jenkins global pipeline libraries
 pipeline {
     agent any
     parameters {
@@ -66,7 +70,7 @@ pipeline {
                 dockerImagePush("${params.aws_accountId}", "${params.region}", "${params.repoName}")
             }
         }
-        stage('Docker image cleanuo'){
+        stage('Docker image cleanup'){
             when { expression { params.action == 'create' } }
             steps{
                 dockerImageCleanup("${params.aws_accountId}", "${params.region}", "${params.repoName}")
