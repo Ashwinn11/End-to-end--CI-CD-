@@ -10,6 +10,11 @@ pipeline {
         string(name: 'aws_accountId', description: 'AWS accountId', defaultValue: 'web-app')
         string(name: 'region', description: 'region of the ECR', defaultValue: 'us-east-1')
         string(name: 'repoName', description: 'RepoName of the hub', defaultValue: 'ashwiin11')
+        string(name: 'cluster_name', description: 'name of the eks cluster', defaultValue: 'demo-cluster')
+    }
+    environment{
+        ACCESS_KEY = credentials('AWS_ACCESS_KEY')
+        SECRET_KEY = credentials('AWS_SECRET_KEY')
     }
     stages {
         stage('git checkout') {
@@ -21,36 +26,46 @@ pipeline {
         stage('Unit test using shared lib') {
             when { expression { params.action == 'create' } }
             steps {
-                mvnTest()
+                script{
+                    mvnTest()
+                }
             }
         }
         stage('Integration test using shared lib') {
             when { expression { params.action == 'create' } }
             steps {
-                mvnIntegrationTest()
+                script{
+                    mvnIntegrationTest()
+                }
             }
         }
         stage('Static code analysis') {
             when { expression { params.action == 'create' } }
             steps {
-                def credentials = 'sonarqube_api'
-                staticCodeAnalysis(credentials)
+                script{
+                    def credentials = 'sonarqube_api'
+                    QualityGateStatus(credentials)
+                }
             }
-
         }
         stage('Quality gate check') {
             when { expression { params.action == 'create' } }
-            steps {
-                def credentials = 'sonarqube_api'
-                QualityGateStatus(credentials)
-            }
 
+            steps {
+                script{
+                    def credentials = 'sonarqube_api'
+                    QualityGateStatus(credentials)
+                }
+            }
         }
         stage('Maven build') {
             when { expression { params.action == 'create' } }
             steps {
-                mvnBuild()
+                script{
+                    mvnBuild()
+                }
             }
+
         }
         stage('Docker build using ECR') {
             when { expression { params.action == 'create' } }
@@ -61,20 +76,63 @@ pipeline {
         stage('Docker image scan'){
             when { expression { params.action == 'create' } }
             steps{
-                dockerImageScan("${params.aws_accountId}", "${params.region}", "${params.repoName}")
+                script {
+                    dockerImageScan("${params.aws_accountId}", "${params.region}", "${params.repoName}")
+                }
             }
         }
         stage('Docker image push'){
             when { expression { params.action == 'create' } }
             steps{
-                dockerImagePush("${params.aws_accountId}", "${params.region}", "${params.repoName}")
+                script {
+                    dockerImagePush("${params.aws_accountId}", "${params.region}", "${params.repoName}")
+                }
             }
         }
         stage('Docker image cleanup'){
             when { expression { params.action == 'create' } }
             steps{
-                dockerImageCleanup("${params.aws_accountId}", "${params.region}", "${params.repoName}")
+                script {
+                    dockerImageCleanup("${params.aws_accountId}", "${params.region}", "${params.repoName}")
+                }
             }
         }
+        stage('create eks cluster : terraform'){
+            when { expression { params.action == 'create' } }
+            steps{
+                script {
+                    dir('eks_module'){
+                        sh """
+                           terraform init
+                           terraform plan -var 'access_key=$ACCESS_KEY' -var 'secret_key=$SECRET_KEY' -var 'region=${params.region}' --var-file=./config/terrafo
+                           terraform apply -var 'access_key=$ACCESS_KEY' -var 'secret_key=$SECRET_KEY' -var 'region=${params.region}' --var-file=./config/terraform.tfvars --auto-approve
+                        """
+                    }
+                }
+            }
+
+        }
+        stage('Configure eks '){
+            steps{
+                script{
+                    sh """
+                     aws configure set aws_access_key_id "$ACCESS_KEY"
+                     aws configure set aws_access_key_id "$SECRET_KEY"
+                     aws configure set region "${params.region}"
+                     aws eks --update kube-config --name ${params.cluster_name} --region ${params.region}
+                    """
+                }
+
+            }
+        }
+        stage('Deployment stage'){
+            steps{
+                script{
+
+                }
+            }
+
+        }
+
     }
 }
