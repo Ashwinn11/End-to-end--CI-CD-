@@ -1,7 +1,5 @@
 // jenkins shared library https://github.com/vikash-kumar01/jenkins_shared_lib.git
 
-
-
 @Library('my_lib') _ // whatever the library name that we are configuring in jenkins global pipeline libraries
 pipeline {
     agent any
@@ -117,9 +115,9 @@ pipeline {
                 script{
                     sh """
                      aws configure set aws_access_key_id "$ACCESS_KEY"
-                     aws configure set aws_access_key_id "$SECRET_KEY"
+                     aws configure set aws_secret_access_key "$SECRET_KEY"
                      aws configure set region "${params.region}"
-                     aws eks --update kube-config --name ${params.cluster_name} --region ${params.region}
+                     aws eks update-kubeconfig --name ${params.cluster_name} --region ${params.region}
                     """
                 }
 
@@ -128,6 +126,21 @@ pipeline {
         stage('Deployment stage'){
             steps{
                 script{
+                    def apply = false
+
+                    try{
+                        input message: 'please confirm to deploy on eks', ok: 'Ready to apply the config ?'
+                        apply = true
+                    }catch(err){
+                        apply= false
+                        currentBuild.result  = 'UNSTABLE'
+                    }
+                    if(apply){
+
+                        sh """
+                        kubectl apply -f
+                        """
+                    }
 
                 }
             }
