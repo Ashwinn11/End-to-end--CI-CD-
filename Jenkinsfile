@@ -6,5 +6,12 @@ pipeline{
                 echo 'git checkout done'
             }
         }
+        stage('Maven build'){
+            steps{
+                script{
+                    sh 'mvn clean package'
+                }
+            }
+        }
     }
 }
